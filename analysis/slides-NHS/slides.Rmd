@@ -1,0 +1,357 @@
+---
+title: "Detecting differentially expressed genes from RNA-seq data using Adaptive Shrinkage (ASH) methods"
+author: Mengyin Lu
+output:
+  ioslides_presentation:
+runtime: shiny
+---
+
+## Introduction
+- Differential expression analysis: 
+    - Test difference in expression levels between 2 conditions for each gene.
+    - Gene-specific effect sizes $\beta_1,...,\beta_G$, test null hypothesis $\beta_g=0$. 
+    - Select top significant genes.
+
+- Typical pipeline: 
+    - Compute t-scores $t_g=\hat{\beta_g}/\hat{s}_g$ or z-scores $z_g=\hat{\beta_g}/s_g$.
+    - Compute p-values from z or t-scores.
+    - Use multiple-testing adjustments (BH, q-value, etc) to control false discovery rate. 
+
+## ASH
+- Adaptive Shrinkage (ASH, Stephens 2016): 
+    - $\hat{\beta_g}|s_g$ exchangeable (instead of $t_g=\hat{\beta_g}/\hat{s}_g$ exchangeable).
+    - Null/alternative assumptions ($g$ unimodal): \[\beta_g|H_0 = 0; \quad \beta_g|H_1 \sim g(\cdot).\]
+    - Likelihood: \[\hat{\beta}_g|(\beta_g,s_g) \sim N(\beta_g, s_g^2).\]
+    - Infer the posterior probability \[lfdr_g:=P(\beta_g=0|\beta_1,...,\beta_G,\hat{s}_1,...,\hat{s}_g)\] and compute q-values.
+
+## ASH vs p-value based methods
+```{r,fig.width=10, fig.height=7, fig.align='center',echo=FALSE, out.width="90%"}
+library(jpeg)
+library(grid)
+img <- readJPEG("pval.jpg")
+grid.raster(img)
+```
+
+## Advantages of ASH
+- The p-value based methods can be over-conservative (over-estimate the null proportion).
+- ASH: conservative, but not over-conservative! i.e. Discovers more signals but still controls FDR, more statistically powerful. 
+```{r,fig.width=10, fig.height=4, fig.align='center',echo=FALSE, out.width="90%"}
+img <- readJPEG("ashpi0.jpg")
+grid.raster(img)
+```
+
+## Apply ASH on RNA-seq data
+Assumptions of ASH:
+
+- Know true $s_g$, or observe $\hat{s}_g\approx s_g$ (resonable assumption when sample size is relatively large).
+- $s_g$ does not depend on expression levels. 
+- Genes and samples are independent. 
+
+However, for real RNA-seq data:
+
+- Sample size is often small (sometimes even <5).
+- Mean-variance relationship due to the nature of count data.
+- Always exists unwanted variation due to confounding factors / batch effects / correlation between genes.
+
+## Issue 1: small sample size
+- What about changing the normal likelihood 
+\[\hat{\beta}_g|(\beta_g,s_g) \sim N(\beta_g, s_g^2)\]
+into a T likelihood? 
+\[\hat{\beta}_g|(\beta_g,\hat{s}_g) \sim \beta_g+\hat{s}_g \cdot T(df)\]
+
+- Above is bad since actually
+\[\frac{\hat{\beta}_g-\beta_g}{\hat{s}_g} |\beta_g \sim T(df),\]
+note that $\hat{s}_g$ on LHS is RANDOM!
+
+## Issue 1: small sample size
+What is $P(\hat{\beta}_g|\beta_g,\hat{s}_g)$? Bayesian modeling:
+
+- $s_g$ known: $\hat{\beta}_g|(\beta_g,s_g^2) \sim N(\hat{\beta}_g; \beta_g, s_g^2)$.
+- $s_g$ unknown, $\hat{s}_g$ observed:
+\[P(\hat{\beta}_g|\beta_g,\hat{s}_g^2) = \int P(\hat{\beta}_g|\beta_g,s_g^2)P(s_g^2|\hat{s}_g^2)ds_g^2 \quad (*) \\ 
+=\int N(\hat{\beta}_g; \beta_g, s_g^2) \times Posterior(s_g^2|\hat{s}_g^2) ds_g^2.\]
+(*) Assuming $\beta_g$ and $s_g^2$ are independent.
+
+
+## Variance modeling
+limma (Smyth 2004) models $s_g^2$ with conjugate inv-gamma prior ($a,b$ are fitted by EB approach):
+\[\hat{s}_g^2=s_g^2 \cdot \frac{\chi^2_{df}}{df}; \quad s_g^2\sim IG(a,b),\]
+
+Posterior distribution of $s_g^2$:
+\[s_g^2|\hat{s}_g^2 \sim IG(\tilde{a}_g,\tilde{b}_g).\]
+Then use $E(s_g|\hat{s}_g)$ to moderate t-score. 
+
+Advantages: combines variance information across genes, improves accuracy of $\hat{s}_g$. However limma does not model $\beta_g$!
+
+## Integrate variance modeling into ASH
+Suppose $s_g^2|\hat{s}_g^2 \sim IG(\tilde{a}_g,\tilde{b}_g)$,
+\[P(\hat{\beta}_g|\beta_g,\hat{s}_g^2) = \int P(\hat{\beta}_g|\beta_g,s_g^2)P(s_g^2|\hat{s}_g^2)ds_g^2 \\ 
+\sim \beta_g + \tilde{s}_g\times T(\tilde{df}_g),\]
+where $\tilde{s}_g := \sqrt{\tilde{b}_g/\tilde{a}_g}$, $\tilde{df}_g:=2\tilde{a}_g$.
+
+i.e. $\hat{\beta}_g|\beta_g,\hat{s}_g^2$ has t-likelihood, with moderated d.f. and standard deviation. 
+
+## Integrate variance modeling into ASH
+Further, 
+\[P(\beta_g|\hat{\beta}_g, \hat{s}_g^2) \propto P(\hat{\beta}_g|\beta_g,\hat{s}_g^2)\times P(\beta_g) \\
+\propto T-likelihood \times g(\cdot).\]
+
+In practice we use an uniform mixture to approximate the unimodal prior $g(\cdot)$, then the posterior distribution of $\beta_g$ is a mixture of truncated t-distribution. 
+
+Then we can compute the q-values from \[lfdr_g:=P(\beta_g=0|\hat{\beta}_g,\hat{s}_g^2).\]
+
+## More flexible variance modeling
+- Limma: prior of $s_g^2$ is a single inverse-gamma distribution.
+
+- Relax this prior assumption? $s_g^2$ comes from an unimodal prior $h(\cdot)$.
+
+- Use a unimodal inverse-gamma mixture to approximate $h$. Posterior distribution of $s_g^2$ is also an inverse-gamma mixture.
+
+- In applications we can check if the mixture prior model has much higher likelihood than that of the single prior model. 
+
+## Issue 2: count data
+- RNA-seq data are typically modeled by Negative-Binomial (over-dispersed Poisson) distribution:
+\[Y_{gi}\sim NB(\mu_{gi},\phi_g).\]
+\[E(Y)=\mu, \quad Var(Y)=\mu+\phi\mu^2.\]
+
+- Test differential expression:
+    - Count based methods (DESeq, edgeR, etc): Neg-Binom GLM with shrunk dispersions; Wald/deviance test. 
+    - Transformation based method (voom+limma): log-cpm transformation; weighted least squares regression; shrink the detrended variances using limma.
+
+- Mean-variance & mean-dispersion relationship!
+
+## Mean-var/disp relationship
+```{r,fig.width=3, fig.height=2.5, fig.align='center',echo=FALSE}
+img1 <- readJPEG("mean-disp.jpg")
+grid.raster(img1)
+```
+
+```{r,fig.width=3, fig.height=2.5, fig.align='center',echo=FALSE}
+img2 <- readJPEG("mean-var.jpg")
+grid.raster(img2)
+```
+
+## voom (Law et al 2014)
+1. Turn count $Y_{gi}$ into log-cpm $r_{gi}$.
+2. Compute weights $w_{gi}=f(\hat{\lambda}_{gi})^{-1}$ (inversely proportional to variance).
+```{r,fig.width=3, fig.height=3, fig.align='center',echo=FALSE}
+img <- readJPEG("loess.jpg")
+grid.raster(img)
+```
+3. WLS: $Var(Y_{gi})=\sigma_g^2/w_{gi}=\sigma_g^2 \cdot f(\hat{\lambda}_{gi})$, and $\sigma_g^2$ does NOT depend on expression levels.
+
+## voom+limma
+4. Use limma to shrink $\hat{\sigma}_g^2$ (assuming $\sigma_g$'s come from a common prior).
+5. Test differential expression using the moderated t-scores.
+
+Since $\sigma_g^2$'s do not depend on expression levels, we can naturally extend voom+limma to voom+vash+ash!
+
+## voom+vash+ash
+Hence we propose the following pipeline:
+
+1. voom: transformation, WLS, obtain $\hat{\beta}_g$ and $\hat{\sigma}_g^2$.
+2. vash: fit the prior of $\sigma_g^2$, compute posterior $P(\sigma_g^2|\hat{\sigma}_g^2)$.
+3. ash: integrate $P(\sigma_g^2|\hat{\sigma}_g^2)$ into $\beta_g$'s likelihood s.t. it has a t-likelihood. Fit the uniform mixture prior of $\beta_g$, compute posterior $P(\beta_g|\hat{\beta}_g, \hat{\sigma}_g^2)$ and the q-values. 
+
+## GTEx simulation (independent case)
+- GTEx data (V4): RNA-seq data, 41 tissues, 8555 samples. 
+- So far we have not consider the possible correlations or batch effects preserved in real data, so we simulate the ideal case where all samples & genes are independent: for each gene, randomly select $N$ samples among same tissue's samples.  
+- Simulate the effect sizes $\beta_g$ from an unimodal prior, then thin the dataset with $\beta_g$ being the log2 fold change. 
+```{r,fig.width=7, fig.height=2.5, fig.align='center',echo=FALSE}
+img <- readJPEG("priorshapes.jpg")
+grid.raster(img)
+```
+
+## GTEx simulation (independent case)
+```{r, echo=FALSE,message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(shiny)
+#load("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-indep/res.Rdata")
+res.indep = readRDS("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-indep/res_indep.RDS")
+
+res.indep = separate(res.indep,scenario,c("scenario","nsamp"),",")
+res.indep$nsamp = factor(res.indep$nsamp, levels=c("nsamp=2","nsamp=10","nsamp=50"))
+res.indep$scenario = factor(res.indep$scenario, levels=c("spiky","near_normal","flat_top",
+                                             "skew","big-normal","bimodal"))
+
+scenario_names = as.character(unique(res.indep$scenario))
+nsamp_names = as.character(unique(res.indep$nsamp))
+method_names = as.character(unique(res.indep$method))
+numeric_criteria = names(res.indep)[unlist(lapply(res.indep,is.numeric))]
+
+shinyApp(
+  ui=fluidPage(
+    tags$head(tags$style(HTML("
+                              .selectize-input, .selectize-dropdown {
+                              font-size: 75%;
+                              }
+                              "))),    
+    sidebarLayout(
+      sidebarPanel(   
+        fluidRow(column(6,
+                        checkboxGroupInput("scen.subset", "Scenarios", 
+                                           choices  = scenario_names,
+                                           selected = scenario_names),
+                        
+                        checkboxGroupInput("nsamp.subset", "Sample sizes", 
+                                           choices  = nsamp_names,
+                                           selected = nsamp_names),
+                        
+                        checkboxGroupInput("method.subset", "Methods", 
+                                           choices  = method_names,
+                                           selected = method_names),
+                        
+                        selectInput("criteria", "Criteria", 
+                                    choices  = numeric_criteria,
+                                    selected = "pi0.est")
+                        
+                        )),width=3
+        ),
+      # Show a plot of the generated distribution
+      mainPanel(
+        plotOutput("plot")       
+        )
+      )
+    ),
+  server = function(input, output) {
+    output$plot <- renderPlot({
+      input$newplot
+      res.indep.filter = filter(res.indep,scenario %in% input$scen.subset & nsamp %in% input$nsamp.subset & method %in% input$method.subset)
+      res.indep.filter$value = res.indep.filter[[input$criteria]]
+
+p=ggplot(res.indep.filter, aes(pi0,value,colour=method))+
+  facet_grid(nsamp~scenario) + geom_point(shape=16) +xlim(0,1) +ylim(0,1) + 
+  xlab("true pi0")   +theme(legend.position="bottom") +coord_equal() 
+if (input$criteria=="pi0.est"){
+  p+ylab("estimated pi0")+geom_abline(slope=1,intercept=0,color=1)
+}else if (input$criteria=="FDP_005"){
+  p+ylab("false discovery proportion when q<0.05")+geom_abline(slope=0,intercept=0.05,color=1)
+}else if (input$criteria=="DP_005"){
+  p+ylab("discovery proportion when q<0.05")+geom_abline(slope=-1,intercept=1,color=1)
+}else{
+  p+ylab(input$criteria)
+}
+
+    })
+  
+  }
+  )
+```
+
+## GTEx simulation (independent case)
+- Our method voom+vash+ash is generally conservative and sometimes has significantly lower FDR than that of DESeq2, edgeR. 
+
+- Voom+limma is also conservative, but may be over-conservative. It often discovers less significant genes than voom+vash+limma. i.e. voom+vash+limma is more statistically powerful.
+
+## Issue 3: confounding structure
+Rocke et al 2015: "We show that many existing methods produce large numbers of false positives in cases where the null hypothesis is true by construction and where actual data from RNA-Seq studies are used, as opposed to simulations that make specific assumptions about the nature of the data." 
+```{r,fig.width=4, fig.height=4, fig.align='center',echo=FALSE}
+img <- readJPEG("rocke.jpg")
+grid.raster(img)
+```
+
+## Issue 3: confounding structure
+Ways to estimate the confounding factors / batch effects:
+
+- Factor analysis based methods: RUV (Removing Unwanted Variation, Risso et al 2014), SVA (Surrogate Variable Analysis, Leek & Storey 2007), CATE (Wang et al 2015), LEAPP (Sun et al 2011), etc
+
+- Control genes can help!
+
+- David/Lei/Wei's ongoing projects: succotash, flash, mvash, cash?
+
+## GTEx simulation (confounding case)
+```{r, echo=FALSE,message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(shiny)
+#load("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-indep/res.Rdata")
+res.dep = readRDS("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-dep/res_dep.RDS")
+
+res.dep = separate(res.dep,scenario,c("scenario","nsamp"),",")
+res.dep$nsamp = factor(res.dep$nsamp, levels=c("nsamp=2","nsamp=10","nsamp=50"))
+res.dep$scenario = factor(res.dep$scenario, levels=c("spiky","near_normal","flat_top",
+                                             "skew","big-normal","bimodal"))
+
+scenario_names = as.character(unique(res.dep$scenario))
+nsamp_names = as.character(unique(res.dep$nsamp))
+method_names = as.character(unique(res.dep$method))
+numeric_criteria = names(res.dep)[unlist(lapply(res.dep,is.numeric))]
+
+shinyApp(
+  ui=fluidPage(
+    tags$head(tags$style(HTML("
+                              .selectize-input, .selectize-dropdown {
+                              font-size: 75%;
+                              }
+                              "))),    
+    sidebarLayout(
+      sidebarPanel(   
+        fluidRow(column(6,
+                        checkboxGroupInput("scen.subset", "Scenarios", 
+                                           choices  = scenario_names,
+                                           selected = scenario_names),
+                        
+                        checkboxGroupInput("nsamp.subset", "Sample sizes", 
+                                           choices  = nsamp_names,
+                                           selected = nsamp_names),
+                        
+                        checkboxGroupInput("method.subset", "Methods", 
+                                           choices  = method_names,
+                                           selected = c("DESeq2","edgeR","voom+limma","voom+vash+ash")),
+                        
+                        selectInput("criteria", "Criteria", 
+                                    choices  = numeric_criteria,
+                                    selected = "pi0.est")
+                        
+                        )),width=3
+        ),
+      # Show a plot of the generated distribution
+      mainPanel(
+        plotOutput("plot")       
+        )
+      )
+    ),
+  server = function(input, output) {
+    output$plot <- renderPlot({
+      input$newplot
+      res.dep.filter = filter(res.dep,scenario %in% input$scen.subset & nsamp %in% input$nsamp.subset & method %in% input$method.subset)
+      res.dep.filter$value = res.dep.filter[[input$criteria]]
+
+p=ggplot(res.dep.filter, aes(pi0,value,colour=method))+
+  facet_grid(nsamp~scenario) + geom_point(shape=16) +xlim(0,1) +ylim(0,1) + 
+  xlab("true pi0")   +theme(legend.position="bottom") +coord_equal() 
+if (input$criteria=="pi0.est"){
+  p+ylab("estimated pi0")+geom_abline(slope=1,intercept=0,color=1)
+}else if (input$criteria=="FDP_005"){
+  p+ylab("false discovery proportion when q<0.05")+geom_abline(slope=0,intercept=0.05,color=1)
+}else if (input$criteria=="DP_005"){
+  p+ylab("discovery proportion when q<0.05")+geom_abline(slope=-1,intercept=1,color=1)
+}else{
+  p+ylab(input$criteria)
+}
+    }) 
+  }
+  )
+```
+
+## GTEx simulation (confounding case)
+- The unwanted variation in real data is a general problem for all methods. It makes all methods more anti-conservative. 
+
+- Even using RUV or SUV with control genes (half of the true nulls) cannot fix the problem. 
+
+## Summary
+- We propose a pipeline voom+vash+ash to test differentially expressed genes from RNA-seq data.
+
+- In scenarios without confounding structures, voom+vash+ash is typically conservative and statistically powerful, even in small sample size cases. 
+
+- In scenarios with confounding structures, all methods suffer from being anti-conservative. Hopefully this problem can be better resolved by XX-ash!
+
+---
+
+
+<div class="centered">
+Thanks!
+</div>
