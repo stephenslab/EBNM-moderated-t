@@ -1,0 +1,219 @@
+---
+title: "Untitled"
+runtime: shiny
+output: ioslides_presentation
+---
+
+## Shiny Presentation
+
+This R Markdown presentation is made interactive using Shiny. The viewers of the presentation can change the assumptions underlying what's presented and see the results immediately. 
+
+To learn more, see [Interactive Documents](http://rmarkdown.rstudio.com/authoring_shiny.html).
+
+## Introduction
+- Differential expression analysis: 
+    - Test difference in expression levels between 2 conditions for each gene.
+    - Gene-specific effect sizes $\beta_1,...,\beta_G$, test null hypothesis $\beta_g=0$. 
+    - Select top significant genes.
+
+- Typical pipeline: 
+    - Compute t-scores $t_g=\hat{\beta_g}/\hat{s}_g$.
+    - Compute p-values of t-scores.
+    - Use multiple-testing adjustments (BH, q-value, etc) to control false discovery rate. 
+
+## ASH
+- Adaptive Shrinkage (ASH, Stephens 2016): 
+    - $(\hat{\beta_g}|s_g)$ exchangeable (instead of $t_g=\hat{\beta_g}/\hat{s}_g$ exchangeable).
+    - Null/alternative assumptions ($g$ unimodal): \[\beta_g|H_0 = 0; \quad \beta_g|H_1 \sim g(\cdot).\]
+    - Likelihood: \[\hat{\beta}_g|(\beta_g,s_g) \sim N(\beta_g, s_g^2).\]
+    - Infer the posterior probability \[P(\beta_g=0|\beta_1,...,\beta_G,\hat{s}_1,...,\hat{s}_g)\].
+
+## Advantages of ASH
+- The p-value based methods are often over-conservative (over-estimate the null proportion).
+- ASH: conservative, but not over-conservative! i.e. Discover more signals but still controls FDR, more statistically powerful. 
+[plot here]
+
+
+## Apply ASH on RNA-seq data
+Assumptions of ASH:
+
+- Know true $s_g$, or observe $\hat{s}_g\approx s_g$ (resonable assumption when sample size is relatively large).
+- $s_g$ does not depend on expression levels. 
+- Genes and samples are independent. 
+
+However, for real RNA-seq data:
+
+- Sample size is often small (sometimes even <5).
+- Mean-variance relationship due to the nature of counts data.
+- Always exists unwanted variation due to confounding factors / batch effects / correlation between genes.
+
+## Apply ASH on RNA-seq data
+ASH in theory:
+```{r,fig.width=3, fig.height=2, fig.align='center',echo=FALSE}
+library(jpeg)
+library(grid)
+img <- readJPEG("gold_ash.jpg")
+ grid.raster(img)
+```
+ASH in practice: 
+```{r,fig.width=3, fig.height=2, fig.align='center',echo=FALSE}
+img <- readJPEG("ash.jpg")
+ grid.raster(img)
+```
+
+## Issue 1: small sample size
+- What about changing the normal-likelihood 
+\[\hat{\beta}_g|(\beta_g,s_g) \sim N(\beta_g, s_g^2)\]
+into T-likelihood? 
+\[\hat{\beta}_g|(\beta_g,\hat{s}_g) \sim \beta_g+\hat{s}_g \cdot T(df)\]
+
+- Above is bad since actually
+\[\frac{\hat{\beta}_g-\beta_g}{\hat{s}_g} |\beta_g \sim T(df),\]
+note that $\hat{s}_g$ in LHS is RANDOM!
+
+## Issue 1: small sample size
+Model $s_g$'s randomness: Bayesian modeling.
+
+- $s_g$ known: $\hat{\beta}_g|(\beta_g,s_g^2) \sim N(\hat{\beta}_g; \beta_g, s_g^2)$.
+- $s_g$ unknown, $\hat{s}_g$ observed:
+\[P(\hat{\beta}_g|\beta_g,\hat{s}_g) = \int P(\hat{\beta}_g|\beta_g,s_g^2)P(s_g^2|\hat{s}_g^2)ds_g^2 \quad (*) \\ 
+=\int N(\hat{\beta}_g; \beta_g, s_g^2) \times Posterior(s_g^2|\hat{s}_g^2) ds_g^2.\]
+(*) Assuming $\beta_g$ and $s_g^2$ are independent.
+
+
+## Variance modeling
+limma (Smyth 2004) models $s_g^2$ with conjugate inv-gamma prior ($a,b$ are fitted by EB approach):
+\[\hat{s}_g^2=s_g^2 \cdot \frac{\chi^2_{df}}{df}; \quad s_g^2\sim IG(a,b),\]
+
+Posterior distribution of $s_g^2$:
+\[s_g^2|\hat{s}_g^2 \sim IG(\tilde{a}_g,\tilde{b}_g).\]
+Then use $E(s_g|\hat{s}_g)$ to moderate t-score. 
+
+Advantages: combines information across genes, improves accuracy of $\hat{s}_g$.
+
+## Integrate variance modeling into ASH
+Suppose $s_g^2|\hat{s}_g^2 \sim IG(\tilde{a}_g,\tilde{b}_g)$,
+\[P(\hat{\beta}_g|\beta_g,\hat{s}_g^2) = \int P(\hat{\beta}_g|\beta_g,s_g^2)P(s_g^2|\hat{s}_g^2)ds_g^2 \\ 
+\sim \beta_g + \tilde{s}_g\times T(\tilde{df}_g),\]
+where $\tilde{s}_g := \sqrt{\tilde{b}_g/\tilde{a}_g}$, $\tilde{df}_g:=2\tilde{a}_g$.
+
+i.e. $\hat{\beta}_g|\beta_g,\hat{s}_g^2$ has t-likelihood, with moderated d.f. and standard deviation. 
+
+## Integrate variance modeling into ASH
+Further, 
+\[P(\beta_g|\hat{\beta}_g, \hat{s}_g^2) \propto P(\hat{\beta}_g|\beta_g,\hat{s}_g^2)\times P(\beta_g) \\
+\propto T-likelihood \times g(\cdot).\]
+
+In practice we use an uniform mixture to approximate the unimodal prior $g(\cdot)$, then the posterior distribution of $\beta_g$ is a mixture of truncated t-distribution. 
+
+Then we can compute the q-values from \[lfdr_g:=P(\beta_g=0|\hat{\beta}_g,\hat{s}_g^2).\]
+
+## Issue 2: counts data
+RNA-seq data are typically modeled by Negative-Binomial (over-dispersed Poisson) distribution:
+\[Y_{gi}\sim NB(\mu_{gi},\phi_g).\]
+
+Test differential expression:
+
+- Count based methods: Neg-Binom GLM.
+- Transformation based methods: voom. 
+
+Combine info across genes:
+
+- Shrink the variance or dispersion towards a common trend (mean-var or mean-disp trend).
+
+## Issue 2: counts data
+
+
+
+## Issue 3: unwanted confounding structure
+
+## Slide with Interactive Plot
+
+```{r, echo=FALSE,message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(shiny)
+load("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-dep/res.Rdata")
+
+res = separate(res,scenario,c("scenario","nsamp"),",")
+res$nsamp = factor(res$nsamp, levels=c("nsamp=2","nsamp=10","nsamp=50"))
+res$scenario = factor(res$scenario, levels=c("spiky","near_normal","flat_top",
+                                             "skew","big-normal","bimodal"))
+
+scenario_names = as.character(unique(res$scenario))
+nsamp_names = as.character(unique(res$nsamp))
+method_names = as.character(unique(res$method))
+numeric_criteria = names(res)[unlist(lapply(res,is.numeric))]
+
+shinyApp(
+  ui=fluidPage(
+    tags$head(tags$style(HTML("
+                              .selectize-input, .selectize-dropdown {
+                              font-size: 75%;
+                              }
+                              "))),    
+    sidebarLayout(
+      sidebarPanel(   
+        fluidRow(column(6,
+                        checkboxGroupInput("scen.subset", "Scenarios", 
+                                           choices  = scenario_names,
+                                           selected = scenario_names),
+                        
+                        checkboxGroupInput("nsamp.subset", "Sample sizes", 
+                                           choices  = nsamp_names,
+                                           selected = nsamp_names),
+                        
+                        checkboxGroupInput("method.subset", "Methods", 
+                                           choices  = method_names,
+                                           selected = method_names),
+                        
+                        selectInput("criteria", "Criteria", 
+                                    choices  = numeric_criteria,
+                                    selected = "pi0.est")
+                        
+                        )),width=4
+        ),
+      # Show a plot of the generated distribution
+      mainPanel(
+        plotOutput("plot")       
+        )
+      )
+    ),
+  server = function(input, output) {
+    output$plot <- renderPlot({
+      input$newplot
+      res.filter = filter(res,scenario %in% input$scen.subset & nsamp %in% input$nsamp.subset & method %in% input$method.subset)
+      res.filter$value = res.filter[[input$criteria]]
+
+p=ggplot(res.filter, aes(pi0,value,colour=method))+
+  facet_grid(nsamp~scenario) + geom_point(shape=16) +xlim(0,1) +ylim(0,1) + 
+  xlab("true pi0")   +theme(legend.position="bottom") +coord_equal() 
+if (input$criteria=="pi0.est"){
+  p+ylab("estimated pi0")+geom_abline(slope=1,intercept=0,color=1)
+}else if (input$criteria=="FDP_005"){
+  p+ylab("false discovery proportion when q<0.05")+geom_abline(slope=0,intercept=0.05,color=1)
+}else if (input$criteria=="DP_005"){
+  p+ylab("discovery proportion when q<0.05")+geom_abline(slope=-1,intercept=1,color=1)
+}else{
+  p+ylab(input$criteria)
+}
+
+    })
+  
+  }
+  )
+```
+
+## Slide with Bullets
+
+- Bullet 1
+- Bullet 2
+- Bullet 3
+
+## Slide with R Code and Output
+
+```{r}
+summary(cars)
+```
+

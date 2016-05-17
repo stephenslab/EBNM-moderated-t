@@ -1,0 +1,67 @@
+---
+title: "Graphs"
+runtime: shiny
+output: html_document
+---
+
+Here's a boxplot of results. 
+```{r, echo=FALSE, message=FALSE}
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+#load("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-dep/res_5.2.Rdata")
+load("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-dep/res.Rdata")
+
+res = separate(res,scenario,c("scenario","nsamp"),",")
+res$nsamp = factor(res$nsamp, levels=c("nsamp=2","nsamp=10","nsamp=50","nsamp=200"))
+res$scenario = factor(res$scenario, levels=c("spiky","near_normal","flat_top",
+                                             "skew","big-normal","bimodal"))
+
+scenario_names = as.character(unique(res$scenario))
+nsamp_names = as.character(unique(res$nsamp))
+method_names = as.character(unique(res$method))
+numeric_criteria = names(res)[unlist(lapply(res,is.numeric))]
+
+inputPanel(    
+    # Create the checkboxes and select them all by default
+    checkboxGroupInput("scen.subset", "Choose Scenarios", 
+                        choices  = scenario_names,
+                        selected = scenario_names),
+    
+    checkboxGroupInput("nsamp.subset", "Choose Sample sizes", 
+                        choices  = nsamp_names,
+                        selected = nsamp_names),
+    
+    checkboxGroupInput("method.subset", "Choose Methods", 
+                        choices  = method_names,
+                        selected = method_names),
+    
+    selectInput("criteria", "Choose Criteria", 
+                        choices  = numeric_criteria,
+                        selected = "pi0.est")
+)
+
+
+renderPlot({
+  res.filter = filter(res,scenario %in% input$scen.subset & nsamp %in% input$nsamp.subset & method %in% input$method.subset)
+  print(input)
+  res.filter$value = res.filter[[input$criteria]]
+  
+  p=ggplot(res.filter, aes(pi0,value,colour=method))+
+  facet_grid(nsamp~scenario) + geom_point(shape=16) +xlim(0,1) +ylim(0,1) + 
+  xlab("true pi0")   +theme(legend.position="bottom") +coord_equal() 
+if (input$criteria=="pi0.est"){
+  p+ylab("estimated pi0")+geom_abline(slope=1,intercept=0,color=1)
+}else if (input$criteria=="FDP_005"){
+  p+ylab("false discovery proportion when q<0.05")+geom_abline(slope=0,intercept=0.05,color=1)
+}else if (input$criteria=="FSP_005"){
+  p+ylab("false sign proportion when s<0.05")+geom_abline(slope=0,intercept=0.05,color=1)
+}else if (input$criteria=="DP_005"){
+  p+ylab("discovery proportion when q<0.05")+geom_abline(slope=-1,intercept=1,color=1)
+}else{
+  p+ylab(input$criteria)
+}
+
+})
+```
+

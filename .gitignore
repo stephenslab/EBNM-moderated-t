@@ -1,0 +1,7 @@
+dsc-poisthin-indep/dsc-gtex-files/
+dsc-poisthin-dep/dsc-gtex-files/
+*~
+paper/
+*/.Rhistory
+dsc-poisthin-indep/res.Rdata
+dsc-poisthin-dep/res.Rdata
