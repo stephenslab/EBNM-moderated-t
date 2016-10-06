@@ -12,7 +12,7 @@ score = function(data, output){
     
     DP_005 = mean(output$qvalue<=0.05,na.rm=TRUE)
     FDP_005 = sum(data$meta$null==1 & output$qvalue<=0.05,na.rm=TRUE)/sum(output$qvalue<=0.05,na.rm=TRUE)
-    FSP_005 = sum(data$meta$beta*output$beta.est<0 & output$svalue<=0.05,na.rm=TRUE)/sum(output$svalue<=0.05,na.rm=TRUE)
+    FSP_005 = sum(data$meta$beta*output$beta.est<=0 & output$svalue<=0.05,na.rm=TRUE)/sum(output$svalue<=0.05,na.rm=TRUE)
     
     AUC = auc(roc(output$qvalue,factor(data$meta$null)))
     rmse.beta = sqrt(mean((data$meta$beta-output$beta.est)^2))
@@ -28,14 +28,13 @@ score = function(data, output){
 }
 
 score3 = function(data, output){
-  return(c(S=pcdf_post(output$fit$fitted.g, data$meta$beta,
-                       output$fit$data$betahat,output$fit$data$sebetahat,v=output$fit$data$df)))
+  return(c(S=pcdf_post(output$fit$fitted_g, data$meta$beta, output$fit$data)))
 }
 
 score_neg = function(data, output){
-  return(c(S=output$fit$NegativeProb))
+  return(c(S=output$fit$result$NegativeProb))
 }
 
 score_pos = function(data, output){
-  return(c(S=output$fit$PositiveProb))
+  return(c(S=output$fit$result$PositiveProb))
 }

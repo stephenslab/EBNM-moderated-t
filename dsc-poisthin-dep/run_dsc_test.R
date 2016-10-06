@@ -8,13 +8,13 @@ source("choose_ash_parameters.R")
 
 jointash2qval_est =function(output){
   if (class(output)=="list"){
-    qvalue = output$fit$qvalue
-    svalue = qval.from.lfdr(output$fit$lfsr)
-    pi0 = output$fit$fitted.g$pi[1]
+    qvalue = output$fit$result$qvalue
+    svalue = qval.from.lfdr(output$fit$result$lfsr)
+    pi0 = output$fit$fitted_g$pi[1]
     return(list(qvalue=qvalue, 
                 svalue=svalue,
                 pi0=pi0,
-                beta.est=output$fit$PosteriorMean))
+                beta.est=output$fit$result$PosteriorMean))
   }else{
     return(list(qvalue=NA, qvalue.fsr=NA, pi0=NA, beta.est=NA))
   }
@@ -37,9 +37,10 @@ addScore(dsc_gtex,score3,"cdf_score","jointash_output")
 addScore(dsc_gtex,score_neg,"negprob","jointash_output") #just extract the negativeprobs
 addScore(dsc_gtex,score_pos,"posprob","jointash_output") #just extracts the positiveprobs
 
+
 res=run_dsc(dsc_gtex)
 
-save(res,file="res.Rdata")
+# save(res,file="res.Rdata")
 
 # library(ggplot2)
 # res = separate(res,scenario,c("scenario","nsamp"),",")

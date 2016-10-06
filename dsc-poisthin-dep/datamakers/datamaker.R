@@ -48,13 +48,14 @@ datamaker = function(args){
   voom = voom_transform(counts, condition)
   
   # RUV & voom
-  halfnull = rep(0,length(null))  # Use half of the true nulls to do supervised RUV/SVA
-  halfnull[which(null==1)[1:floor(length(which(null==1))/2)]] = 1
-  W.RUV = RUV_factor(counts, args, halfnull)
+  ctls = rep(0,length(null))  # Use nctl true nulls to do supervised RUV/SVA
+  #ctls[which(null==1)[1:floor(length(which(null==1))/2)]] = 1
+  ctls[which(null==1)[1:args$nctl]] = 1
+  W.RUV = RUV_factor(counts, args, ctls)
   RUVvoom = voom_transform(counts, condition, W=W.RUV)
   
   # SVA & voom
-  W.SVA = SVA_factor(counts, condition, args, halfnull)
+  W.SVA = SVA_factor(counts, condition, args, ctls)
   SVAvoom = voom_transform(counts, condition, W=W.SVA)
   
   meta = list(pi0=be$pi0, null=be$null, beta=be$beta,

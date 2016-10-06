@@ -1,0 +1,113 @@
+---
+title: "Examples"
+output: html_document
+---
+
+Define functions to plot uniform/normal mixture distribution:
+```{r}
+# Density of normal mixture
+normalmix_dens = function(distn,xgrid){
+  k = length(distn$pi)
+  dens = colSums(dnorm(outer(rep(1,k),xgrid),distn$mu,distn$sd)*distn$pi)
+  return(dens)
+}
+
+# Density of uniform mixture
+unimix_dens = function(distn,xgrid){
+  k = length(distn$pi)
+  dens = colSums(dunif(outer(rep(1,k),xgrid),distn$a,distn$b)*distn$pi)
+  return(dens)
+}
+```
+
+## Dependent case: bad estimated pi0 but good actual FDR (q=0.05)
+```{r,message=FALSE}
+library("dscr")
+library("ashr")
+library(reshape2)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+load("../dsc-poisthin-dep/res.Rdata")
+
+# Even though pi0 is pretty much under-estimated, voom+vash+ash does not declare any discovery. 
+filter(res$score[,2:8],scenario=="near_normal,nsamp=2" &seed==13)
+out.ash = readRDS("../dsc-poisthin-indep/dsc-gtex-files/output/near_normal,nsamp=2/voom+vash+ash/jointash_output/output.13.rds")
+
+# voom+vash+ash's qvalue: all>0.05, so no discoveries. 
+out.ash$fit$fitted.g
+summary(out.ash$fit$qvalue)
+summary(out.ash$fit$lfdr)
+
+# voom+limma's p-value: ill-conditioned
+out.limma = readRDS("../dsc-poisthin-dep/dsc-gtex-files/output/near_normal,nsamp=2/voom+limma/pval_output/output.13.rds")
+hist(out.limma$pvalue)
+
+# Change the q-value threshold to 0.2, then FDR is pretty high
+meta=readRDS("../dsc-poisthin-dep/dsc-gtex-files/meta/near_normal,nsamp=2/default_meta/meta.13.rds")
+sum(out.ash$fit$qvalue<=0.2 & meta$null==1)/sum(out.ash$fit$qvalue<=0.2)
+```
+
+## Independent case: bad coverage rate (significant negative discoveries) for spiky, N=2 scenario
+```{r}
+load("../dsc-poisthin-dep/res.Rdata")
+
+# make coverage tables
+coverthresh = 0.05 # threshold at which we look at coverage
+findthresh=0.95 #threshold at we define a discovery significant
+
+neglong = 
+  res$negprob %>% 
+  select(-user.self,-sys.self,-elapsed,-user.child,-sys.child) %>%
+  melt(id.vars=c("method","scenario","seed",".id"),value.name="negprob") %>%
+  filter(negprob > findthresh) %>%
+  filter(method=="voom+vash+ash")
+
+poslong = 
+  res$posprob %>% 
+  select(-user.self,-sys.self,-elapsed,-user.child,-sys.child) %>%
+  melt(id.vars=c("method","scenario","seed",".id"),value.name="posprob") %>%
+  filter(posprob > findthresh) %>%
+  filter(method=="voom+vash+ash")
+
+reslong = 
+  res$cdf_score %>% 
+  select(-user.self,-sys.self,-elapsed,-user.child,-sys.child) %>%    
+  melt(id.vars=c("method","scenario","seed",".id")) %>%
+  filter(method=="voom+vash+ash")
+
+reslong.pos = inner_join(reslong,poslong)
+reslong.neg = inner_join(reslong,neglong)
+
+# check neg coverage rates 
+# flat_top,N=2: 0.84 
+xtabs(lt~scenario+seed,filter(reslong.neg,scenario=="flat_top,nsamp=2") %>% group_by(scenario,method,seed) %>% summarize(lt = mean(value<coverthresh))) %>% round(2)
+xtabs(lt~scenario+seed,filter(reslong.neg,scenario=="near_normal,nsamp=2") %>% group_by(scenario,method,seed) %>% summarize(lt = mean(value<coverthresh))) %>% round(2)
+
+# choose flat_top, N=2, seed=28, neg coverage rate 0.72
+out.ash = readRDS("../dsc-poisthin-indep/dsc-gtex-files/output/flat_top,nsamp=2/voom+vash+ash/jointash_output/output.28.rds")
+meta = readRDS("../dsc-poisthin-indep/dsc-gtex-files/meta/flat_top,nsamp=2/default_meta//meta.28.rds")
+
+x = seq(-10,10,by=0.05)
+fitted.alt = list(pi=out.ash$fit$fitted.g$pi[-1],a=out.ash$fit$fitted.g$a[-1],
+                  b=out.ash$fit$fitted.g$b[-1])
+plot(x,normalmix_dens(meta$betaprior,x),type="l",ylim=c(0,0.5),xlim=c(-10,10),
+     ylab="prior density",xlab="x")
+lines(x,unimix_dens(fitted.alt,x),col=2)
+title("flat_top, N=2, negCR=0.72")
+legend("topright",lty=1,col=c(1,2),legend=c("true","fitted"))
+
+# choose near_normal, N=2, seed=78, neg coverage rate 0.72
+out.ash = readRDS("../dsc-poisthin-indep/dsc-gtex-files/output/near_normal,nsamp=2/voom+vash+ash/jointash_output/output.21.rds")
+meta = readRDS("../dsc-poisthin-indep/dsc-gtex-files/meta/near_normal,nsamp=2/default_meta/meta.21.rds")
+
+x = seq(-10,10,by=0.05)
+fitted.alt = list(pi=out.ash$fit$fitted.g$pi[-1],a=out.ash$fit$fitted.g$a[-1],
+                  b=out.ash$fit$fitted.g$b[-1])
+plot(x,normalmix_dens(meta$betaprior,x),type="l",ylim=c(0,0.5),xlim=c(-10,10),
+     ylab="prior density",xlab="x")
+lines(x,unimix_dens(fitted.alt,x),col=2)
+title("near_normal, N=2, negCR=0.72")
+legend("topright",lty=1,col=c(1,2),legend=c("true","fitted"))
+
+```

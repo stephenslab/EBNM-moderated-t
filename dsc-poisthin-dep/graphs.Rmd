@@ -9,18 +9,18 @@ Here's a boxplot of results.
 library(ggplot2)
 library(dplyr)
 library(tidyr)
-#load("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-dep/res_5.2.Rdata")
-load("/Volumes/PERSONAL/MS/vash+ash/dsc-poisthin-dep/res.Rdata")
 
-res = separate(res,scenario,c("scenario","nsamp"),",")
-res$nsamp = factor(res$nsamp, levels=c("nsamp=2","nsamp=10","nsamp=50","nsamp=200"))
-res$scenario = factor(res$scenario, levels=c("spiky","near_normal","flat_top",
+load("res.Rdata")
+
+res$score = separate(res$score,scenario,c("scenario","nsamp"),",")
+res$score$nsamp = factor(res$score$nsamp, levels=c("nsamp=2","nsamp=10","nsamp=50","nsamp=200"))
+res$score$scenario = factor(res$score$scenario, levels=c("spiky","near_normal","flat_top",
                                              "skew","big-normal","bimodal"))
 
-scenario_names = as.character(unique(res$scenario))
-nsamp_names = as.character(unique(res$nsamp))
-method_names = as.character(unique(res$method))
-numeric_criteria = names(res)[unlist(lapply(res,is.numeric))]
+scenario_names = as.character(unique(res$score$scenario))
+nsamp_names = as.character(unique(res$score$nsamp))
+method_names = as.character(unique(res$score$method))
+numeric_criteria = names(res$score)[unlist(lapply(res$score,is.numeric))]
 
 inputPanel(    
     # Create the checkboxes and select them all by default
@@ -43,7 +43,7 @@ inputPanel(
 
 
 renderPlot({
-  res.filter = filter(res,scenario %in% input$scen.subset & nsamp %in% input$nsamp.subset & method %in% input$method.subset)
+  res.filter = filter(res$score,scenario %in% input$scen.subset & nsamp %in% input$nsamp.subset & method %in% input$method.subset)
   print(input)
   res.filter$value = res.filter[[input$criteria]]
   

@@ -52,9 +52,9 @@ fsp_plot=ggplot(res$score[res$score$method=="voom+vash+ash",],
   geom_abline(slope=0,intercept=0.05,colour = "black") +
   xlab("True pi0") +
   ylab("False sign proportion when s=0.05") 
-print(fsp_plot +scale_y_continuous(limits=c(0,0.06)) +
+print(fsp_plot +scale_y_continuous(limits=c(0,1)) +
         scale_x_continuous(limits=c(0,1)) +
-        coord_equal(ratio=10) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+        coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
 dev.off()
 
 setEPS()
@@ -202,7 +202,8 @@ res$score$scenario = factor(res$score$scenario, levels=c("spiky","near_normal","
 res$score = filter(res$score,nsamp %in% c("N=2","N=10","N=50"))
 res$score = filter(res$score, scenario %in% c("spiky","near_normal","flat_top","big-normal","bimodal"))
 res$score1 = filter(res$score, method %in% c("DESeq2","edgeR","voom+limma","voom+vash+ash"))
-res$score2 = filter(res$score, method %in% c("RUV+edgeR","RUV+voom+limma","RUV+voom+vash+ash"))
+#res$score2 = filter(res$score, method %in% c("RUV+DESeq2","RUV+edgeR","RUV+voom+limma","RUV+voom+vash+ash"))
+res$score2 = filter(res$score, method %in% c("voom+vash+ash","vruv4+ash"))
 
 setEPS()
 postscript('../paper/figures/pi0est_dep.eps',width=6,height=6)
@@ -233,6 +234,36 @@ print(pi0_plot2 +scale_y_continuous(limits=c(0,1)) +
 dev.off()
 
 setEPS()
+postscript('../paper/figures/fdp_dep.eps',width=6,height=6)
+res$score1$FDP_005[is.na(res$score1$FDP_005)]=0
+fdp_plot=ggplot(res$score1,
+                aes(pi0,FDP_005,colour=method)) +geom_point(shape=1) +
+  facet_grid(nsamp ~ scenario) + 
+  guides(alpha=FALSE) +
+  geom_abline(slope=0,intercept=0.05,colour = "black") +
+  xlab("True pi0") +
+  ylab("False discovery proportion when q=0.05") 
+print(fdp_plot +scale_y_continuous(limits=c(0,1)) +
+        scale_x_continuous(limits=c(0,1)) +
+        coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+dev.off()
+
+setEPS()
+postscript('../paper/figures/fdp2_dep.eps',width=6,height=6)
+res$score2$FDP_005[is.na(res$score2$FDP_005)]=0
+fdp_plot=ggplot(res$score2,
+                aes(pi0,FDP_005,colour=method)) +geom_point(shape=1) +
+  facet_grid(nsamp ~ scenario) + 
+  guides(alpha=FALSE) +
+  geom_abline(slope=0,intercept=0.05,colour = "black") +
+  xlab("True pi0") +
+  ylab("False discovery proportion when q=0.05") 
+print(fdp_plot +scale_y_continuous(limits=c(0,1)) +
+        scale_x_continuous(limits=c(0,1)) +
+        coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+dev.off()
+
+setEPS()
 postscript('../paper/figures/fsp_dep.eps',width=6,height=6)
 res$score$FSP_005[is.na(res$score$FSP_005)]=0
 fsp_plot=ggplot(res$score[res$score$method=="voom+vash+ash",],
@@ -242,9 +273,24 @@ fsp_plot=ggplot(res$score[res$score$method=="voom+vash+ash",],
   geom_abline(slope=0,intercept=0.05,colour = "black") +
   xlab("True pi0") +
   ylab("False sign proportion when s=0.05") 
-print(fsp_plot +scale_y_continuous(limits=c(0,0.06)) +
+print(fsp_plot +scale_y_continuous(limits=c(0,1)) +
         scale_x_continuous(limits=c(0,1)) +
-        coord_equal(ratio=10) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+        coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+dev.off()
+
+setEPS()
+postscript('../paper/figures/fsp2_dep.eps',width=6,height=6)
+res$score2$FSP_005[is.na(res$score2$FSP_005)]=0
+fsp_plot=ggplot(res$score2[res$score2$method %in% c("voom+vash+ash","vruv4+ash"),],
+                aes(pi0,FSP_005,colour=method)) +geom_point(shape=1) +
+  facet_grid(nsamp ~ scenario) + 
+  guides(alpha=FALSE) +
+  geom_abline(slope=0,intercept=0.05,colour = "black") +
+  xlab("True pi0") +
+  ylab("False sign proportion when s=0.05") 
+print(fsp_plot +scale_y_continuous(limits=c(0,1)) +
+        scale_x_continuous(limits=c(0,1)) +
+        coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
 dev.off()
 
 ###
@@ -270,6 +316,25 @@ print(rmse_plot +scale_y_continuous(limits=c(0,1.3)) +
         scale_x_continuous(limits=c(0,1)) +
         coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
 dev.off()
+
+# test2 = left_join(res$score2,newres,by=c("seed","scenario","nsamp"))
+# test2$rmse.beta_rel = test2$rmse.beta/test2$rmse.beta_voomlimma 
+# test2$AUC_rel = test2$AUC-test2$AUC_voomlimma
+# test2$DP_005_rel = test2$DP_005-test2$DP_005_voomlimma
+# 
+# setEPS()
+# postscript('../paper/figures/rmse2_dep.eps',width=6,height=6)
+# rmse_plot=ggplot(test2,
+#                  aes(pi0,rmse.beta_rel,colour=method)) +geom_point(shape=1) +
+#   facet_grid(nsamp ~ scenario) + 
+#   guides(alpha=FALSE) +
+#   geom_abline(slope=0,intercept=1,colour = "black") +
+#   xlab("True pi0") +
+#   ylab("Relative RMSE of effect estimates") 
+# print(rmse_plot +scale_y_continuous(limits=c(0,1.3)) +
+#         scale_x_continuous(limits=c(0,1)) +
+#         coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+# dev.off()
 
 
 # Coverage tables

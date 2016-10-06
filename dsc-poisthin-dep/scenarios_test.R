@@ -19,7 +19,7 @@ for (nsamp in c(2,10,50)){
               fn=datamaker,
               args=list(ngene=10000, nsamp=nsamp, pi0="random",
                         betaargs=list(betapi=rep(1/7,7),betamu=c(-1.5,-1,-0.5,0,0.5,1,1.5),betasd=rep(0.5,7)/sqrt(2*nsamp-2)),
-                        breaksample=FALSE),
+                        breaksample=FALSE, nctl=100),
               seed=1:1)
 #   
 #   addScenario(dsc_gtex,name=paste0("skew,nsamp=",nsamp), 

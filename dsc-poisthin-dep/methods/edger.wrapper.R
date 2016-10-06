@@ -20,16 +20,12 @@ edger.wrapper = function(input,args){
     if(is.null(args$SVA)){
       args$SVA = FALSE
     }
-    if(args$RUV==TRUE){
+    if(args$RUV==TRUE & !is.null(input$W.RUV)){
       design = model.matrix(~input$condition+input$W.RUV)
-    }else if(args$SVA==TRUE){
-      if (sum(input$W.SVA!=0)){
-        design = model.matrix(~input$condition+input$W.SVA) 
-      }else{
-        design = model.matrix(~input$condition) 
-      }        
+    }else if(args$SVA==TRUE & !is.null(input$W.RUV)){
+      design = model.matrix(~input$condition+input$W.SVA) 
     }else{
-      design = model.matrix(~input$condition)
+      design = model.matrix(~input$condition)  
     }
     
     y = DGEList(counts=input$counts+args$pseudocounts, group=input$condition)

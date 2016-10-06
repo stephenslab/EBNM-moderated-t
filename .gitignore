@@ -5,3 +5,4 @@ paper/
 */.Rhistory
 dsc-poisthin-indep/res.Rdata
 dsc-poisthin-dep/res.Rdata
+*.Rdata

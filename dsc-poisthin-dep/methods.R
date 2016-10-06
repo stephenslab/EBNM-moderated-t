@@ -3,6 +3,9 @@ sourceDir("methods")
 
 addMethod(dsc_gtex,name="DESeq2",fn=deseq2.wrapper,outputtype="pval_output")
 
+addMethod(dsc_gtex,name="RUV+DESeq2",fn=deseq2.wrapper,outputtype="pval_output",
+          args=list(RUV=TRUE))
+
 addMethod(dsc_gtex,name="edgeR",fn=edger.wrapper,outputtype="pval_output",args=list(exacttest=TRUE))
 
 addMethod(dsc_gtex,name="RUV+edgeR",fn=edger.wrapper,outputtype="pval_output",
@@ -28,3 +31,6 @@ addMethod(dsc_gtex,name="RUV+voom+vash+ash",fn=jointash.wrapper,outputtype="join
 
 addMethod(dsc_gtex,name="SVA+voom+vash+ash",fn=jointash.wrapper,outputtype="jointash_output",
           args=list(transform="SVAvoom",singlecomp=TRUE))
+
+addMethod(dsc_gtex,name="vruv4+ash",fn=vruv4ash.wrapper,outputtype="jointash_output",
+          args=list(nctl=100))
