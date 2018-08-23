@@ -1,0 +1,93 @@
+---
+title: "Simulate non-null data"
+output: html_document
+---
+Define functions for non-null simulation:
+```{r}
+# counts: G*N null count matrix, rows are genes and columns are samples
+# args: a list of arguments
+#   -betaargs: parameters for the normal mixture distribution to generate signals
+#   -pi0: null proportion. If pi0=="random" then pi0 will be randomly selected from U(0,1)
+non_null_sim = function(counts, args){
+  # Thinned effect sizes generated from normal mixture prior
+  ngene = dim(counts)[1]
+  be = gen_normalmix(ngene, 
+                     args$betaargs$betapi, args$betaargs$betamu, args$betaargs$betasd, 
+                     args$pi0)
+  null = be$null # null gene indicators
+  
+  # Use Poisson thinning to add effects to null data
+  counts = pois_thinning(counts, be$beta)
+  return(list(counts=counts, null=null))
+}
+
+# Generate beta from normal mixture prior
+gen_normalmix = function(ngene, pi, mu, sd, pi0){
+  if (pi0=="random"){
+    pi0 = runif(1,0,1) #generate the proportion of true nulls randomly
+  }
+  k = length(pi) # number of components
+  comp = sample(1:k,ngene,pi,replace=TRUE) #randomly draw a component
+  isnull = (runif(ngene,0,1) < pi0)
+  beta = ifelse(isnull, 0, rnorm(ngene,mu[comp],sd[comp]))
+  return(list(beta=beta, pi0=pi0, null=isnull))
+}
+
+
+# Poisson thinning
+pois_thinning = function(counts, log2foldchanges){
+  nsamp = dim(counts)[2]/2
+  null = (log2foldchanges==0)
+  log2foldchanges = log2foldchanges[!null]
+  foldchanges = 2^log2foldchanges
+  
+  # thin group A
+  counts[which(!null)[log2foldchanges>0],1:nsamp] = 
+    matrix(rbinom(sum(log2foldchanges>0)*nsamp, 
+                  size=c(as.matrix(counts[which(!null)[log2foldchanges>0],1:nsamp])),
+                  prob=rep(1/foldchanges[log2foldchanges>0],nsamp)),ncol=nsamp)
+  # thin group B
+  counts[which(!null)[log2foldchanges<0],(nsamp+1):(2*nsamp)] = 
+    matrix(rbinom(sum(log2foldchanges<0)*nsamp, 
+                  size=c(as.matrix(counts[which(!null)[log2foldchanges<0],(nsamp+1):(2*nsamp)])),
+                  prob=rep(foldchanges[log2foldchanges<0],nsamp)),ncol=nsamp)
+  
+  return(counts)
+}
+```
+
+Simulate non-null on top of a null count matrix (e.g. simulate signals from a spiky prior distribution):
+```{r, eval=FALSE}
+# suppose we already have the null count matrix
+counts = ...
+
+# nsamp is N/2, where N is the number of samples
+nsamp = dim(counts)[2]/2
+
+# signal distribution: spiky
+args = list(pi0="random",
+            betaargs=list(betapi=c(.4,.2,.2,.2),betamu=c(0,0,0,0),betasd=c(.25,.5,1,2)/sqrt(2*nsamp-2)))
+
+# simulate non-null data
+nonnull = non_null_sim(counts, args)
+newcounts = nonnull$counts
+```
+
+To simulate signals from other distributions, simply change the values of "args".
+```{r,eval=FALSE}                        
+# signal distribution: near_normal
+args = list(pi0="random",
+            betaargs=list(betapi=c(2/3,1/3),betamu=c(0,0),betasd=c(1,2)/sqrt(2*nsamp-2)))
+
+# signal distribution: flat_top
+args = list(pi0="random",
+            betaargs=list(betapi=rep(1/7,7),betamu=c(-1.5,-1,-0.5,0,0.5,1,1.5),betasd=rep(0.5,7)/sqrt(2*nsamp-2)))
+
+# signal distribution: big-normal
+args=list(pi0="random",
+          betaargs=list(betapi=c(1),betamu=c(0),betasd=c(4)/sqrt(2*nsamp-2)))
+                        
+# signal distribution: bimodal
+args=list(pi0="random",
+          betaargs=list(betapi=c(0.5,0.5),betamu=c(-2,2),betasd=c(1,1)/sqrt(2*nsamp-2)))
+```

@@ -1,8 +1,8 @@
 library(dscr)
 
 dsc_gtex = new.dsc("gtex","dsc-gtex-files")
-source("scenarios.R")
-source("methods.R")
+source("scenarios_nullash.R")
+source("methods_nullash.R")
 source("score_short.R")
 source("choose_ash_parameters.R")
 
@@ -19,17 +19,8 @@ jointash2qval_est =function(output){
     return(list(qvalue=NA, qvalue.fsr=NA, pi0=NA, beta.est=NA))
   }
 } 
-pval2qval_est =function(output){
-  if (class(output)=="list"){
-    qq = qvalue(output$pvalue[!is.na(output$pvalue)])
-    qvalue = rep(NA,length(output$pvalue))
-    qvalue[!is.na(output$pvalue)] = qq$qval
-    return(list(qvalue=qvalue, pi0=qq$pi0, beta.est=output$beta.est))
-  }else{
-    return(list(qvalue=NA, pi0=NA, beta.est=NA))
-  }
-}
-ctlinflate2qval_est = function(output){
+
+ctlinflate2qval_est =function(output){
   if (class(output)=="list"){
     qvalue = output$fit$result$qvalue
     svalue = qval.from.lfdr(output$fit$result$lfsr)
@@ -43,24 +34,36 @@ ctlinflate2qval_est = function(output){
     return(list(qvalue=NA, qvalue.fsr=NA, pi0=NA, beta.est=NA))
   }
 }
-addOutputParser(dsc_gtex,"pval2qval",pval2qval_est,"pval_output","qval_output")
+# pval2qval_est =function(output){
+#   if (class(output)=="list"){
+#     qq = qvalue(output$pvalue[!is.na(output$pvalue)])
+#     qvalue = rep(NA,length(output$pvalue))
+#     qvalue[!is.na(output$pvalue)] = qq$qval
+#     return(list(qvalue=qvalue, pi0=qq$pi0, beta.est=output$beta.est))
+#   }else{
+#     return(list(qvalue=NA, pi0=NA, beta.est=NA))
+#   }
+# }
+# addOutputParser(dsc_gtex,"pval2qval",pval2qval_est,"pval_output","qval_output")
 addOutputParser(dsc_gtex,"jointash2qval",jointash2qval_est,"jointash_output","qval_output")
 addOutputParser(dsc_gtex,"ctlinflate2qval",ctlinflate2qval_est,"ctlinflate_output","qval_output")
 
 
 addScore(dsc_gtex,score,name="score",outputtype="qval_output")
-addScore(dsc_gtex,score3,"cdf_score","jointash_output")
-addScore(dsc_gtex,score_neg,"negprob","jointash_output") #just extract the negativeprobs
-addScore(dsc_gtex,score_pos,"posprob","jointash_output") #just extracts the positiveprobs
+addScore(dsc_gtex,score_lambda,name="score_lambda",outputtype="ctlinflate_output")
+#addScore(dsc_gtex,score_loglike,name="score_loglike",outputtype="jointash_output")
+#addScore(dsc_gtex,score3,"cdf_score","jointash_output")
+#addScore(dsc_gtex,score_neg,"negprob","jointash_output") #just extract the negativeprobs
+#addScore(dsc_gtex,score_pos,"posprob","jointash_output") #just extracts the positiveprobs
 
 
 res = run_dsc(dsc_gtex)
 
-save(res,file="res.Rdata")
+save(res,file="res_nullash.Rdata")
 
 # library(ggplot2)
 # res = separate(res,scenario,c("scenario","nsamp"),",")
-# res$nsamp = factor(res$nsamp, levels=c("nsamp=2","nsamp=10","nsamp=50"))
+# res$nsamp = factor(res$nsamp, levels=c("nsamp=50"))
 # 
 # ggplot(res, aes(pi0,pi0.est,colour=method))+
 #   facet_grid(nsamp~scenario) + geom_point(shape=1) +xlim(0,1) +ylim(0,1) + 

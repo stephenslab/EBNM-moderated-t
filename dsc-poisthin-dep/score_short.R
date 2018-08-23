@@ -18,13 +18,11 @@ score = function(data, output){
     rmse.beta = sqrt(mean((data$meta$beta-output$beta.est)^2))
     
     res = c(pi0, pi0.est, DP_005, FDP_005, FSP_005, AUC, rmse.beta)
-    names(res) = c("pi0","pi0.est","DP_005","FDP_005","FSP_005","AUC","rmse.beta") 
-    return(res)
   }else{
     res = rep(NA, 7)
-    names(res) = c("pi0","pi0.est","DP_005","FDP_005","FSP_005","AUC","rmse.beta")  
-    return(res)
   } 
+  names(res) = c("pi0","pi0.est","DP_005","FDP_005","FSP_005","AUC","rmse.beta") 
+  return(res)
 }
 
 score3 = function(data, output){
@@ -51,3 +49,22 @@ score_pos = function(data, output){
     return(c(S=rep(NA,length(data$meta$beta))))
   }
 }
+
+score_loglike = function(data, output){
+  if (class(output)=="list"){
+    return(output$fit$loglik)
+  }else{
+    return(NA)
+  }
+}
+
+score_lambda = function(data, output){
+  if (class(output)=="list"){
+    res = c(output$lambda1, output$lambda2)
+  }else{
+    res = c(NA, NA)
+  }
+  names(res) = c("lambda1", "lambda2")
+  return(res)
+}
+

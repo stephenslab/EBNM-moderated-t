@@ -29,8 +29,23 @@ pval2qval_est =function(output){
     return(list(qvalue=NA, pi0=NA, beta.est=NA))
   }
 }
+ctlinflate2qval_est = function(output){
+  if (class(output)=="list"){
+    qvalue = output$fit$result$qvalue
+    svalue = qval.from.lfdr(output$fit$result$lfsr)
+    pi0 = output$fit$fitted_g$pi[1]
+    return(list(qvalue=qvalue, 
+                svalue=svalue,
+                pi0=pi0,
+                beta.est=output$fit$result$PosteriorMean,
+                lambda1=output$lambda1, lambda2=output$lambda2))
+  }else{
+    return(list(qvalue=NA, qvalue.fsr=NA, pi0=NA, beta.est=NA))
+  }
+}
 addOutputParser(dsc_gtex,"pval2qval",pval2qval_est,"pval_output","qval_output")
 addOutputParser(dsc_gtex,"jointash2qval",jointash2qval_est,"jointash_output","qval_output")
+addOutputParser(dsc_gtex,"ctlinflate2qval",ctlinflate2qval_est,"ctlinflate_output","qval_output")
 
 addScore(dsc_gtex,score,name="score",outputtype="qval_output")
 addScore(dsc_gtex,score3,"cdf_score","jointash_output")

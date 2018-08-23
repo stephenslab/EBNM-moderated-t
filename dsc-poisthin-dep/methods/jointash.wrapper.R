@@ -15,7 +15,7 @@ jointash.wrapper = function(input,args){
     df.new = 2*va$PosteriorShape[1]
     pilik = 1  
     fit = ash(ash.params$betahat,sebetahat.new,df=df.new,
-              method="fdr",mixcompdist=args$mixcompdist)
+              method="fdr",mixcompdist=args$mixcompdist,alpha=args$alpha)
   }else{
     library(mixash)
     sebetahat.new = ash.params$scale*sqrt(va$PosteriorRate/va$PosteriorShape)
