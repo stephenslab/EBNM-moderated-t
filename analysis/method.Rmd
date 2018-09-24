@@ -1,0 +1,64 @@
+---
+title: "Usage of VL+eBayes+ash"
+output: html_document
+---
+
+Here we illustrate the usage of our proposed method *VL+eBayes+ash* on a simulated toy dataset. The R packages [limma](https://bioconductor.org/packages/release/bioc/html/limma.html), [edgeR](https://bioconductor.org/packages/release/bioc/html/edgeR.html) and [ashr](https://cran.r-project.org/web/packages/ashr/index.html) are required.
+
+First we simulate an RNA-seq dataset (1000 genes, 2 samples in group A and 2 samples in group B). 
+
+```{r}
+set.seed(1234)
+
+# Simulate a ngene*nsamp count matrix
+# rows are genes and columns are samples
+ngene = 1000
+nsamp = 4
+condition = c("A","A","B","B")  # group indicator
+data = matrix(rpois(ngene*nsamp, 500), nrow=ngene)
+colnames(data) = condition
+head(data)
+```
+
+Now we estimate the "effect size" (i.e. the difference in expression levels between the two groups for each gene) using our proposed method *VL+eBayes+ash*. 
+
+```{r,message=FALSE,warning=FALSE}
+library(limma)
+library(edgeR)
+library(ashr)
+
+# Calculate normalization factors
+dgecounts = calcNormFactors(DGEList(counts=data, group=condition))
+  
+# Voom transformation
+design = model.matrix(~condition)
+v = voom(dgecounts,design,plot=FALSE)
+  
+# Use lmFit to estimate effect sizes betahat
+lim = lmFit(v)
+
+# Then use eBayes to shrink the standard errors
+lim = eBayes(lim)
+
+# Get betahat, the shrunk s.e. and moderated d.f
+betahat = lim$coefficients[,2]
+se = lim$stdev.unscaled[,2]*sqrt(lim$s2.post) # EB shrunk s.e.
+df = lim$df.total[1]
+  
+# Fit ash with the shrunk s.e. and moderated d.f
+fit = ash(betahat, se, df=df)
+```
+
+After getting the ashr fitted object `fit`, we can fetch the estimated effect sizes and q-values for each gene by the following commands. 
+
+```{r}
+# Gene-wise shrunk estimates for the effect sizes are
+beta_est = fit$result$betahat
+summary(beta_est)
+
+# Gene-wise q-values for testing if true effect is 0
+qval = fit$result$qvalue
+summary(qval)
+```
+
+From the simulation setting, we know this is a pure null dataset (all effect sizes should be 0). The above results show that the estimated effect sizes are very small around 0 with big q-values, which suggests they are null genes.  
