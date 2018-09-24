@@ -33,6 +33,10 @@ datamaker = function(args){
   be = gen_normalmix(args$ngene, 
                      args$betaargs$betapi, args$betaargs$betamu, args$betaargs$betasd, 
                      args$pi0)
+  if ("alpha" %in% names(args)){
+    voom.init = voom_transform(counts, condition)
+    be$beta = be$beta*(voom.init$sebetahat)^(args$alpha)
+  }
   null = be$null
   
   # Poisson thinning (optional)
@@ -61,7 +65,7 @@ datamaker = function(args){
   meta = list(pi0=be$pi0, null=be$null, beta=be$beta,
               betaprior=list(pi=args$betaargs$betapi,mu=args$betaargs$betamu,sd=args$betaargs$betasd), 
               args=args)
-  input = list(counts=counts, condition=condition,
+  input = list(counts=counts, condition=condition, null=be$null,
                v=voom$v, RUVv=RUVvoom$v, SVAv=SVAvoom$v, 
                betahat.voom=voom$betahat, sebetahat.voom=voom$sebetahat, df.voom=voom$df,
                betahat.RUVvoom=RUVvoom$betahat, sebetahat.RUVvoom=RUVvoom$sebetahat, df.RUVvoom=RUVvoom$df, W.RUV=W.RUV,

@@ -23,7 +23,7 @@ limmaash.wrapper = function(input,args=NULL){
   sebetahat = lim$stdev.unscaled[,2]*sqrt(lim$s2.post) # EB shrunk s.e.
   
   # fit ash with the shrunk s.e. and moderated d.f
-  fit = ash(betahat,sebetahat,df=lim$df.total[1])
+  fit = ash(betahat,sebetahat,df=lim$df.total[1],alpha=args$alpha)
   
   return(list(fit=fit))
 }

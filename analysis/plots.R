@@ -9,22 +9,28 @@ library(tidyr)
 # Make plots (dsc with independent genes)
 load("../dsc-poisthin-indep/res.RData")
 resscore = separate(res$score,scenario,c("scenario","nsamp"),",nsamp=")
+
+resscore$method = replace(resscore$method,resscore$method=="voom+vash+ash","VL+eBayes+ash")
+resscore$method = replace(resscore$method,resscore$method=="voom+vash+ash.alpha=1",
+                          "VL+eBayes+ash.alpha=1")
+resscore$method = replace(resscore$method,resscore$method=="voom+ash","VL+ash")
+resscore$method = replace(resscore$method,resscore$method=="voom+limma","VL+eBayes+qval")
+resscore$method[resscore$method %in% c("DESeq2","edgeR")] = 
+  paste0(resscore$method[resscore$method %in% c("DESeq2","edgeR")],"+qval")
+
 resscore$nsamp = paste0("N=",resscore$nsamp)
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="N=2","2 vs 2")
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="N=4","4 vs 4")
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="N=10","10 vs 10")
 resscore$nsamp = factor(resscore$nsamp, levels=c("2 vs 2","4 vs 4","10 vs 10"))
-resscore$method = replace(resscore$method,resscore$method=="voom+vash+ash","voom+limma+ash")
-resscore$method = replace(resscore$method,resscore$method=="voom+vash+ash.alpha=1",
-                          "voom+limma+ash.alpha=1")
-resscore$method[resscore$method %in% c("DESeq2","edgeR","voom+limma")] = 
-  paste0(resscore$method[resscore$method %in% c("DESeq2","edgeR","voom+limma")],"+qval")
+
 resscore$scenario = factor(resscore$scenario, levels=c("spiky","near_normal","flat_top","big-normal","bimodal"))
-resscore2 = filter(resscore, method %in% c("DESeq2+qval","voom+limma+qval",
-                                           "voom+limma+ash", "voom+limma+ash.alpha=1"))
-resscore3 = filter(resscore, method %in% c("DESeq2+qval","edgeR+qval","voom+limma+qval"))
-resscore = filter(resscore, method %in% c("voom+limma+qval", "voom+ash",
-                                          "voom+limma+ash", "voom+limma+ash.alpha=1"))
+resscore2 = filter(resscore, method %in% c("DESeq2+qval","VL+eBayes+qval","VL+pval2se+ash",
+                                           "VL+eBayes+ash", "VL+eBayes+ash.alpha=1"))
+resscore3 = filter(resscore, method %in% c("DESeq2+qval","edgeR+qval","VL+eBayes+qval",
+                                           "VL+pval2se+ash"))
+resscore = filter(resscore, method %in% c("VL+eBayes+qval", "VL+ash","VL+pval2se+ash",
+                                          "VL+eBayes+ash", "VL+eBayes+ash.alpha=1"))
 
 
 setEPS()
@@ -38,7 +44,10 @@ pi0_plot=ggplot(resscore,
   ylab("Estimated pi0") 
 print(pi0_plot +scale_y_continuous(limits=c(0,1)) +
         scale_x_continuous(limits=c(0,1)) +
-        coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+        coord_equal(ratio=1) + 
+        guides(fill=guide_legend(nrow=2))+
+        theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+        
 dev.off()
 
 setEPS()
@@ -71,7 +80,7 @@ dev.off()
 
 setEPS()
 postscript('../paper/figures/fsp_indep.eps',width=8,height=8)
-fsp_plot=ggplot(resscore[resscore$method %in% c("voom+limma+ash","voom+limma+ash.alpha=1"),],
+fsp_plot=ggplot(resscore[resscore$method %in% c("VL+eBayes+ash","VL+eBayes+ash.alpha=1"),],
                 aes(pi0,FSP_005,colour=method)) +geom_point(shape=1) +
   facet_grid(nsamp ~ scenario) + 
   guides(alpha=FALSE) +
@@ -99,14 +108,14 @@ dev.off()
 
 ####
 newres = resscore2
-newres = newres[newres$method=="voom+limma+qval",]
+newres = newres[newres$method=="VL+eBayes+qval",]
 newres = cbind(newres[,2:4],newres$rmse.beta,newres$DP_005,newres$AUC)
 names(newres)[4:6] = c("rmse.beta_voomlimma","DP_005_voomlimma","AUC_voomlimma")
 test = left_join(resscore2,newres,by=c("seed","scenario","nsamp"))
 test$rmse.beta_rel = test$rmse.beta/test$rmse.beta_voomlimma 
 test$AUC_rel = test$AUC-test$AUC_voomlimma
 test$DP_005_rel = test$DP_005-test$DP_005_voomlimma
-test$method[test$method=="voom+limma+qval"] = "voom+limma"
+test$method[test$method=="VL+eBayes+qval"] = "VL"
 test$method[test$method=="DESeq2+qval"] = "DESeq2"
 
 setEPS()
@@ -225,40 +234,32 @@ rm(list=ls())
 load("../dsc-poisthin-dep/res.RData")
 
 resscore = res$score
-#rm("res")
-# resscore = separate(resscore,scenario,c("scenario","nsamp"),",nsamp=")
-# resscore$nsamp = paste0("N=",resscore$nsamp)
-# resscore$nsamp = factor(resscore$nsamp, levels=c("N=2","N=4","N=10"))
-# resscore$scenario = factor(resscore$scenario, levels=c("spiky","near_normal","flat_top","big-normal","bimodal"))
-# resscore = filter(resscore,nsamp %in% c("N=2","N=4","N=10"))
-# resscore = filter(resscore, scenario %in% c("spiky","near_normal","flat_top","big-normal","bimodal"))
-# resscore1 = filter(resscore, method %in% c("DESeq2","edgeR","voom+limma","voom+vash+ash","voom+vash+ash.alpha=1"))
-# resscore2 = filter(resscore, method %in% c("voom+vash+ash","ctlinflate.both.cons","inflate.cons"))
-# resscore2$method[resscore2$method=="ctlinflate.both.cons"] = "voom+limma+ash+inflate"
-# resscore2$method[resscore2$method=="inflate.cons"] = "voom+limma+ash+inflate.ctl"
+resscore$method = replace(resscore$method,resscore$method=="voom+vash+ash","VL+eBayes+ash")
+resscore$method = replace(resscore$method,resscore$method=="voom+vash+ash.alpha=1",
+                          "VL+eBayes+ash.alpha=1")
+resscore$method = replace(resscore$method,resscore$method=="voom+ash","VL+ash")
+resscore$method = replace(resscore$method,resscore$method=="voom+limma","VL+eBayes+qval")
+resscore$method[resscore$method %in% c("DESeq2","edgeR")] = 
+  paste0(resscore$method[resscore$method %in% c("DESeq2","edgeR")],"+qval")
+resscore$method[resscore$method=="ctlinflate.both.cons"] = "VL+eBayes+ash+inflate"
+resscore$method[resscore$method=="inflate.cons"] = "VL+eBayes+ash+inflate.ctl"
 
-resscore = separate(res$score,scenario,c("scenario","nsamp"),",nsamp=")
+resscore = separate(resscore,scenario,c("scenario","nsamp"),",nsamp=")
 resscore$nsamp = paste0("N=",resscore$nsamp)
 resscore$scenario = factor(resscore$scenario, levels=c("spiky","near_normal","flat_top","big-normal","bimodal"))
+
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="N=2","2 vs 2")
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="N=4","4 vs 4")
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="N=10","10 vs 10")
 resscore$nsamp = factor(resscore$nsamp, levels=c("2 vs 2","4 vs 4","10 vs 10"))
-resscore$method = replace(resscore$method,resscore$method=="voom+vash+ash","voom+limma+ash")
-resscore$method = replace(resscore$method,resscore$method=="voom+vash+ash.alpha=1",
-                          "voom+limma+ash.alpha=1")
-resscore$method[resscore$method %in% c("DESeq2","edgeR","voom+limma")] = 
-  paste0(resscore$method[resscore$method %in% c("DESeq2","edgeR","voom+limma")],"+qval")
-resscore$scenario = factor(resscore$scenario, levels=c("spiky","near_normal","flat_top","big-normal","bimodal"))
-resscore$method[resscore$method=="ctlinflate.both.cons"] = "voom+limma+ash+inflate"
-resscore$method[resscore$method=="inflate.cons"] = "voom+limma+ash+inflate.ctl"
-resscore2 = filter(resscore, method %in% c("voom+limma+ash","voom+limma+ash+inflate","voom+limma+ash+inflate.ctl","mouthwash"))
-resscore1 = filter(resscore, method %in% c("DESeq2+qval","edgeR+qval","voom+limma+qval","voom+limma+ash","voom+limma+ash.alpha=1"))
+
+resscore2 = filter(resscore, method %in% c("VL+eBayes+ash","VL+eBayes+ash+inflate","VL+eBayes+ash+inflate.ctl","mouthwash"))
+resscore1 = filter(resscore, method %in% c("DESeq2+qval","edgeR+qval","VL+eBayes+qval","VL+eBayes+ash","VL+eBayes+ash.alpha=1"))
 
 
 
 setEPS()
-postscript('../paper/figures/pi0est_dep.eps',width=8,height=8)
+postscript('../paper/figures/pi0est_dep.eps',width=10,height=10)
 pi0_plot=ggplot(resscore1,
                 aes(pi0,pi0.est,colour=method)) +geom_point(shape=1) +
   facet_grid(nsamp ~ scenario) + 
@@ -272,7 +273,7 @@ print(pi0_plot +scale_y_continuous(limits=c(0,1)) +
 dev.off()
 
 setEPS()
-postscript('../paper/figures/pi0est2_dep.eps',width=8,height=8)
+postscript('../paper/figures/pi0est2_dep.eps',width=10,height=10)
 pi0_plot2=ggplot(resscore2,
                 aes(pi0,pi0.est,colour=method)) +geom_point(shape=1) +
   facet_grid(nsamp ~ scenario) +
@@ -286,7 +287,7 @@ print(pi0_plot2 +scale_y_continuous(limits=c(0,1)) +
 dev.off()
 
 setEPS()
-postscript('../paper/figures/fdp_dep.eps',width=8,height=8)
+postscript('../paper/figures/fdp_dep.eps',width=10,height=10)
 fdp_plot=ggplot(resscore1,
                 aes(pi0,FDP_005,colour=method)) +geom_point(shape=1) +
   facet_grid(nsamp ~ scenario) + 
@@ -300,7 +301,7 @@ print(fdp_plot +scale_y_continuous(limits=c(0,1)) +
 dev.off()
 
 setEPS()
-postscript('../paper/figures/fdp2_dep.eps',width=8,height=8)
+postscript('../paper/figures/fdp2_dep.eps',width=10,height=10)
 fdp_plot=ggplot(resscore2,
                 aes(pi0,FDP_005,colour=method)) +geom_point(shape=1) +
   facet_grid(nsamp ~ scenario) +
@@ -314,7 +315,7 @@ print(fdp_plot +scale_y_continuous(limits=c(0,1)) +
 dev.off()
 
 setEPS()
-postscript('../paper/figures/fsp_dep.eps',width=8,height=8)
+postscript('../paper/figures/fsp_dep.eps',width=10,height=10)
 fsp_plot=ggplot(resscore[resscore$method %in% c("voom+limma+ash","voom+limma+ash.alpha=1"),],
                 aes(pi0,FSP_005,colour=method)) +geom_point(shape=1) +
   facet_grid(nsamp ~ scenario) + 
@@ -328,7 +329,7 @@ print(fsp_plot +scale_y_continuous(limits=c(0,1)) +
 dev.off()
 
 setEPS()
-postscript('../paper/figures/fsp2_dep.eps',width=8,height=8)
+postscript('../paper/figures/fsp2_dep.eps',width=10,height=10)
 fsp_plot=ggplot(resscore2,
                 aes(pi0,FSP_005,colour=method)) +geom_point(shape=1) +
   facet_grid(nsamp ~ scenario) +
@@ -369,14 +370,17 @@ dev.off()
 # dev.off()
 
 ###
-newres = resscore
-newres = newres[newres$method=="voom+limma+qval",]
+newres = resscore1ß
+newres = newres[newres$method=="VL+eBayes+qval",]
 newres = cbind(newres[,2:4],newres$rmse.beta,newres$DP_005,newres$AUC)
 names(newres)[4:6] = c("rmse.beta_voomlimma","DP_005_voomlimma","AUC_voomlimma")
 test = left_join(resscore1,newres,by=c("seed","scenario","nsamp"))
 test$rmse.beta_rel = test$rmse.beta/test$rmse.beta_voomlimma 
 test$AUC_rel = test$AUC-test$AUC_voomlimma
 test$DP_005_rel = test$DP_005-test$DP_005_voomlimma
+test$method[test$method=="VL+eBayes+qval"] = "VL"
+test$method[test$method=="DESeq2+qval"] = "DESeq2"
+test$method[test$method=="edgeR+qval"] = "edgeR"
 
 setEPS()
 postscript('../paper/figures/rmse_dep.eps',width=8,height=8)
@@ -392,21 +396,21 @@ print(rmse_plot +scale_y_continuous(limits=c(0,1.3)) +
         coord_equal(ratio=1) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
 dev.off()
 
-setEPS()
-postscript('../paper/figures/auc_dep.eps',width=8,height=8)
-auc_plot=ggplot(test,
-                aes(pi0,AUC_rel,colour=method)) +
-  #geom_point(shape=1) +
-  geom_smooth(method="loess") +
-  facet_grid(nsamp ~ scenario) + 
-  guides(alpha=FALSE) +
-  #geom_abline(slope=0,intercept=0,colour = "black") +
-  xlab("True pi0") +
-  ylab("Relative AUC") 
-print(auc_plot +scale_y_continuous(limits=c(-0.03,0.03)) +
-        scale_x_continuous(limits=c(0,1)) +
-        coord_equal(ratio=10) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
-dev.off()
+# setEPS()
+# postscript('../paper/figures/auc_dep.eps',width=8,height=8)
+# auc_plot=ggplot(test,
+#                 aes(pi0,AUC_rel,colour=method)) +
+#   #geom_point(shape=1) +
+#   geom_smooth(method="loess") +
+#   facet_grid(nsamp ~ scenario) + 
+#   guides(alpha=FALSE) +
+#   #geom_abline(slope=0,intercept=0,colour = "black") +
+#   xlab("True pi0") +
+#   ylab("Relative AUC") 
+# print(auc_plot +scale_y_continuous(limits=c(-0.03,0.03)) +
+#         scale_x_continuous(limits=c(0,1)) +
+#         coord_equal(ratio=10) + theme(legend.position = "top",axis.text.x = element_text(size = 8,angle=45)))
+# dev.off()
 
 
 # test2 = left_join(res$score2,newres,by=c("seed","scenario","nsamp"))

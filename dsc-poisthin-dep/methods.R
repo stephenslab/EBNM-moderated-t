@@ -14,7 +14,7 @@ addMethod(dsc_gtex,name="edgeR",fn=edger.wrapper,outputtype="pval_output",args=l
 # addMethod(dsc_gtex,name="SVA+edgeR",fn=edger.wrapper,outputtype="pval_output",
 #           args=list(exacttest=FALSE, SVA=TRUE))
 
-addMethod(dsc_gtex,name="voom+limma",fn=limma.wrapper,outputtype="pval_output",
+addMethod(dsc_gtex,name="VL+eBayes+qval",fn=limma.wrapper,outputtype="pval_output",
           args=list(transform="voom",robust=FALSE))
 
 # addMethod(dsc_gtex,name="RUV+voom+limma",fn=limma.wrapper,outputtype="pval_output",
@@ -23,14 +23,14 @@ addMethod(dsc_gtex,name="voom+limma",fn=limma.wrapper,outputtype="pval_output",
 # addMethod(dsc_gtex,name="SVA+voom+limma",fn=limma.wrapper,outputtype="pval_output",
 #           args=list(transform="SVAvoom",robust=FALSE))
 
-addMethod(dsc_gtex,name="voom+ash",fn=ash.wrapper,outputtype="jointash_output",
+addMethod(dsc_gtex,name="VL+ash",fn=ash.wrapper,outputtype="jointash_output",
           args=list(transform="voom"))
 
-addMethod(dsc_gtex,name="voom+vash+ash",fn=jointash.wrapper,outputtype="jointash_output",
-          args=list(transform="voom",singlecomp=TRUE,alpha=0))
+addMethod(dsc_gtex,name="VL+eBayes+ash",fn=limmaash.wrapper,outputtype="jointash_output",
+          args=list(alpha=0))
 
-addMethod(dsc_gtex,name="voom+vash+ash.alpha=1",fn=jointash.wrapper,outputtype="jointash_output",
-          args=list(transform="voom",singlecomp=TRUE,alpha=1))
+addMethod(dsc_gtex,name="VL+eBayes+ash.alpha=1",fn=limmaash.wrapper,outputtype="jointash_output",
+          args=list(alpha=1))
 
 # addMethod(dsc_gtex,name="RUV+voom+vash+ash",fn=jointash.wrapper,outputtype="jointash_output",
 #           args=list(transform="RUVvoom",singlecomp=TRUE))
@@ -55,12 +55,12 @@ addMethod(dsc_gtex,name="voom+vash+ash.alpha=1",fn=jointash.wrapper,outputtype="
 # addMethod(dsc_gtex,name="empiricalqval",fn=empiricalqval.wrapper,outputtype="qval_output",
 #           args=list(nctl=100))
 
-addMethod(dsc_gtex,name="ctlinflate.both.cons",fn=ctlinflate.wrapper,
+addMethod(dsc_gtex,name="VL+eBayes+ash+inflate",fn=ctlinflate.wrapper,
           outputtype="ctlinflate_output",
           args=list(nctl=100, transform="voom", mode="both", 
                     conservative=TRUE, normapprox=FALSE))
 
-addMethod(dsc_gtex,name="inflate.cons",fn=inflate.wrapper,
+addMethod(dsc_gtex,name="VL+eBayes+ash+inflate.ctl",fn=inflate.wrapper,
           outputtype="ctlinflate_output",
           args=list(transform="voom", conservative=TRUE))
 
