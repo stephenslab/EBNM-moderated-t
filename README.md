@@ -1,5 +1,4 @@
 # EBNM
-Code and analyses for the "EBNM" project (Empirical Bayes estimation of normal means, accounting for uncertainty in estimated standard errors)
 
 This repository contains the codes and analyses for the "EBNM" project (Empirical Bayes estimation of normal means, accounting for uncertainty in estimated standard errors).
 
