@@ -10,11 +10,8 @@ library(sva)
 library(ggplot2)
   
 datamaker = function(args){  
-  #rawdata = read.table("/Volumes/PERSONAL/MS/gtex/tissues/liver.txt",header=TRUE)
-  rawdata = as.matrix(fread("/Volumes/PERSONAL/MS/gtex/tissues/liver.txt",
-                            header=FALSE,drop=1,skip=1))
-  colnames(rawdata) = as.character(read.table("/Volumes/PERSONAL/MS/gtex/tissues/liver.txt",
-                                              nrows=1,stringsAsFactors=FALSE))
+  rawdata = as.matrix(fread("../data/Liver.txt",header=FALSE,drop=1,skip=1))
+  colnames(rawdata) = as.character(read.table("../data/Liver.txt",nrows=1,stringsAsFactors=FALSE))
   
   rawdata = rawdata[,-(1:2)]  # remove the first 2 samples (outliers)
   counts = selectsample(rawdata, 2*args$nsamp,args$breaksample)

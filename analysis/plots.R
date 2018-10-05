@@ -505,17 +505,18 @@ resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="2vs2","2 vs 2")
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="4vs4","4 vs 4")
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="10vs10","10 vs 10")
 resscore$nsamp = factor(resscore$nsamp, levels=c("2 vs 2","4 vs 4","10 vs 10"))
+resscore$method = replace(res$score$method,res$score$method=="voom+limma","VL+eBayes")
 
 
-setEPS()
-postscript('../paper/figures/pvalks_indep_null.eps',width=8,height=8/3)
-pval_ks_plot = ggplot(resscore, aes(method,pval.ks)) +geom_boxplot() +
-  facet_grid(~nsamp) + 
-  geom_abline(slope=0,intercept=0.05,colour="red") +
-  xlab("Methods") +
-  ylab("P-value of KS test") 
-print(pval_ks_plot +scale_y_continuous(limits=c(0,0.5)))
-dev.off()
+# setEPS()
+# postscript('../paper/figures/pvalks_indep_null.eps',width=8,height=8/3)
+# pval_ks_plot = ggplot(resscore, aes(method,pval.ks)) +geom_boxplot() +
+#   facet_grid(~nsamp) + 
+#   geom_abline(slope=0,intercept=0.05,colour="red") +
+#   xlab("Methods") +
+#   ylab("P-value of KS test") 
+# print(pval_ks_plot +scale_y_continuous(limits=c(0,0.5)))
+# dev.off()
 
 setEPS()
 postscript('../paper/figures/npval005_indep_null.eps',width=8,height=8/3)
@@ -600,6 +601,7 @@ resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="2vs2","2 vs 2")
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="4vs4","4 vs 4")
 resscore$nsamp = replace(resscore$nsamp,resscore$nsamp=="10vs10","10 vs 10")
 resscore$nsamp = factor(resscore$nsamp, levels=c("2 vs 2","4 vs 4","10 vs 10"))
+resscore$method = replace(res$score$method,res$score$method=="voom+limma","VL+eBayes")
 
 npvaltab = resscore[,c(1:5,7:11)] %>% gather(thres, npval, 6:10)
 npvaltab$thres = as.numeric(substring(npvaltab$thres, 6))*10
