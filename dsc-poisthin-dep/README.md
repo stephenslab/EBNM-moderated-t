@@ -2,12 +2,15 @@
 
 This directory contains the R code of DSC (Dynamic Statistical Comparison) of DE analysis methods on simulated RNA-Seq data where genes are dependent. The simulations are based on real [GTEx](https://gtexportal.org/home/) RNA-seq data of human liver ([raw RNA-seq data](https://github.com/mengyin/EBNM/blob/master/data/Liver.txt)).
 
-To run the DSC, first install the [`dscr`](https://github.com/stephens999/dscr) package:
+To run the DSC, first install the [`dscr`](https://github.com/stephens999/dscr) package (and its required packages dplyr, shiny):
 
 ```{r}
+install.packages(c("dplyr", "shiny"))
+
 library(devtools)
 install_github("stephens999/dscr")
 ```
+
 Also make sure you already installed the other required R packages: 
 
 * From Bioconductor: limma, DESeq2, edgeR, qvalue, RUVSeq, sva
@@ -23,15 +26,6 @@ install.packages(c("ashr", "ggplot2", "data.table", "locfdr", "gaussquad", "AUC"
 library(devtools)
 install_github("mengyin/vashr")
 install_github("dcgerard/vicar")
-```
-
-To run the DSC, first install the [`dscr`](https://github.com/stephens999/dscr) package (and its required packages dplyr, shiny):
-
-```{r}
-install.packages(c("dplyr", "shiny"))
-
-library(devtools)
-install_github("stephens999/dscr")
 ```
 
 Then run the DSC by
