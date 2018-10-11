@@ -11,18 +11,27 @@ install_github("stephens999/dscr")
 Also make sure you already installed the other required R packages: 
 
 * From Bioconductor: limma, DESeq2, edgeR, qvalue, RUVSeq, sva
+* From CRAN: ashr, ggplot2, data.table, locfdr, gaussquad, AUC, SQUAREM, foreach, pscl
 * From Github: vashr, vicar
-* From CRAN: ashr, ggplot2, data.table, locfdr, gaussquad, AUC, SQUAREM
 
 ```{r}
 source("https://bioconductor.org/biocLite.R")
 biocLite(c("limma", "DESeq2", "edgeR", "qvalue", "RUVSeq", "sva"))
 
+install.packages(c("ashr", "ggplot2", "data.table", "locfdr", "gaussquad", "AUC", "SQUAREM", "foreach", "pscl"))
+
 library(devtools)
 install_github("mengyin/vashr")
 install_github("dcgerard/vicar")
+```
 
-install.packages(c("ashr", "ggplot2", "data.table", "locfdr", "gaussquad", "AUC", "SQUAREM"))
+To run the DSC, first install the [`dscr`](https://github.com/stephens999/dscr) package (and its required packages dplyr, shiny):
+
+```{r}
+install.packages(c("dplyr", "shiny"))
+
+library(devtools)
+install_github("stephens999/dscr")
 ```
 
 Then run the DSC by
