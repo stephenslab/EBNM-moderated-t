@@ -5,19 +5,18 @@ This directory contains the R code of DSC (Dynamic Statistical Comparison) of DE
 Also make sure you already installed the other required R packages: 
 
 * From Bioconductor: limma, DESeq2, edgeR, qvalue, RUVSeq, sva
-* From Github: ashr, vashr, vicar
-* From CRAN: ggplot2, data.table, locfdr, gaussquad, AUC
+* From Github: vashr, vicar
+* From CRAN: ashr, ggplot2, data.table, locfdr, gaussquad, AUC, SQUAREM
 
 ```{r}
 source("https://bioconductor.org/biocLite.R")
 biocLite(c("limma", "DESeq2", "edgeR", "qvalue", "RUVSeq", "sva"))
 
 library(devtools)
-install_github("stephens999/ashr")
 install_github("mengyin/vashr")
 install_github("dcgerard/vicar")
 
-install.packages(c("ggplot2", "data.table", "locfdr", "gaussquad", "AUC"))
+install.packages(c("ashr", "ggplot2", "data.table", "locfdr", "gaussquad", "AUC", "SQUAREM"))
 ```
 
 To run the DSC, first install the [`dscr`](https://github.com/stephens999/dscr) package:
