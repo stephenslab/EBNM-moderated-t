@@ -130,6 +130,21 @@ $(document).ready(function () {
 <p>To run the DSC, first install the <a href="https://github.com/stephens999/dscr"><code>dscr</code></a> package:</p>
 <pre class="{r}"><code>library(devtools)
 install_github(&quot;stephens999/dscr&quot;)</code></pre>
+<p>Also make sure you already installed the other required R packages:</p>
+<ul>
+<li>From Bioconductor: limma, DESeq2, edgeR, qvalue, RUVSeq, sva</li>
+<li>From Github: ashr, vashr, vicar</li>
+<li>From CRAN: ggplot2, data.table, locfdr, gaussquad, AUC</li>
+</ul>
+<pre class="{r}"><code>source(&quot;https://bioconductor.org/biocLite.R&quot;)
+biocLite(c(&quot;limma&quot;, &quot;DESeq2&quot;, &quot;edgeR&quot;, &quot;qvalue&quot;, &quot;RUVSeq&quot;, &quot;sva&quot;))
+
+library(devtools)
+install_github(&quot;stephens999/ashr&quot;)
+install_github(&quot;mengyin/vashr&quot;)
+install_github(&quot;dcgerard/vicar&quot;)
+
+install.packages(c(&quot;ggplot2&quot;, &quot;data.table&quot;, &quot;locfdr&quot;, &quot;gaussquad&quot;, &quot;AUC&quot;))</code></pre>
 <p>Then run the DSC by</p>
 <pre class="{r}"><code>setwd(&quot;.&quot;)
 source(&quot;run_dsc.R&quot;)</code></pre>
