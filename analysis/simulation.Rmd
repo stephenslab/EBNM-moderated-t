@@ -150,20 +150,20 @@ neglong =
   select(-user.self,-sys.self,-elapsed,-user.child,-sys.child) %>%
   melt(id.vars=c("method","scenario","seed",".id"),value.name="negprob") %>%
   filter(negprob > findthresh) %>%
-  filter(method=="voom+vash+ash")
+  filter(method=="VL+eBayes+ash")
 
 poslong = 
   res$posprob %>% 
   select(-user.self,-sys.self,-elapsed,-user.child,-sys.child) %>%
   melt(id.vars=c("method","scenario","seed",".id"),value.name="posprob") %>%
   filter(posprob > findthresh) %>%
-  filter(method=="voom+vash+ash")
+  filter(method=="VL+eBayes+ash")
 
 reslong = 
   res$cdf_score %>% 
   select(-user.self,-sys.self,-elapsed,-user.child,-sys.child) %>%    
   melt(id.vars=c("method","scenario","seed",".id")) %>%
-  filter(method=="voom+vash+ash")
+  filter(method=="VL+eBayes+ash")
 
 reslong.pos = inner_join(reslong,poslong)
 reslong.neg = inner_join(reslong,neglong)
@@ -179,11 +179,12 @@ xtabs(lt~as.numeric(nsamp)+scenario,reslong.neg %>% group_by(scenario,method) %>
         separate(scenario,c("scenario","nsamp"),",nsamp=")) %>% round(2)
 ```
 
-### Simulations with independent genes
+### Simulations with dependent genes
 
-We compare the results similarly:
+We compare the results for dependent genes similarly (these results are in 
+Mengyin Lu's PhD thesis, but not in Lu and Stephens).
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
 rm(list=ls())
 load("../dsc-poisthin-dep/res.RData")
 
