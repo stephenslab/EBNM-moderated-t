@@ -59,6 +59,9 @@ resscore$scenario = factor(resscore$scenario,
 
 resscore$method[resscore$method %in% c("DESeq2","edgeR")] = 
   paste0(resscore$method[resscore$method %in% c("DESeq2","edgeR")],"+qval")
+
+resscore$nsamp = factor(resscore$nsamp, levels=c("N=2","N=4","N=10"))
+
 resscore2 = filter(resscore, method %in% c("DESeq2+qval","VL+eBayes+qval","VL+pval2se+ash",
                                            "VL+eBayes+ash", "VL+eBayes+ash.alpha=1"))
 resscore = filter(resscore, method %in% c("VL+eBayes+qval", "VL+ash","VL+pval2se+ash",
