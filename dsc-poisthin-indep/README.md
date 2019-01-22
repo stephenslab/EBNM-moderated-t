@@ -34,10 +34,10 @@ install_github("mengyin/vashr")
 install_github("dcgerard/vicar")
 ```
 
-For a full list of the R packages, and the version numbers, that we
-used to g enerate the results contained in this repository, please see
-the "Session information" section at the bottom of the
-[simulation analysis](../analysis/simulation.html).
+**Note:** For a full list of the R packages, and the version numbers,
+that were used to generate the results provided in this repository,
+please see the "Session information" section at the bottom of the
+[main simulation analysis](../analysis/simulation.html).
 
 Then run the DSC by
 
