@@ -1,17 +1,22 @@
 # Empirical Bayes Normal Means with Estimated Standard errors
 
-This repository contains the codes and analyses for 
-work by Lu and Stephens, Empirical Bayes (EB) estimation of normal means, accounting for uncertainty in estimated standard errors.
+This repository contains the codes and analyses for work by Lu and
+Stephens, Empirical Bayes (EB) estimation of normal means, accounting
+for uncertainty in estimated standard errors.
 
 ## The bottom line, and example pipeline
 
 The bottom line is that we recommend a two-stage procedure:
 
-  1. Perform EB shrinkage on estimated standard errors; eg as in the limma R package.
+1. Perform EB shrinkage on estimated standard errors; eg as in the
+limma R package.
 
-  2. Apply the EB T means model (ie the EB normal means, but with the normal likelihood replaced with a t likelihood); eg as in the ashr R package.
+2. Apply the EB T means model (ie the EB normal means, but with the
+normal likelihood replaced with a t likelihood); eg as in the ashr
+R package.
  
-An example of this pipeline, which we call *VL+eBayes+ash*, is illustrated in `analysis/method.Rmd`.
+An example of this pipeline, which we call *VL+eBayes+ash*, is
+illustrated in `analysis/method.Rmd`.
 
 ## Simulation studies
 
